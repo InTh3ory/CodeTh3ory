@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snow</title>
+  </head>
+  <style>
+    body {
+      background-color: midnightblue;
+      margin: 0;
+      position: relative;
+    }
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+  </style>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script>
+      class Snowflake {
+        constructor(x, y, r) {
+          this.x = x;
+          this.y = y;
+          this.r = r;
+        }
+
+        update() {
+          this.y += this.r / 5;
+        }
+      }
+
+      let snowflakes = [];
+
+      const init = () => {
+        window.requestAnimationFrame(draw);
+      };
+
+      const draw = () => {
+        const canvas = document.getElementById("canvas");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Initializing
+        if (Math.random() < 0.1) {
+          const xPosition = Math.random() * canvas.width;
+          snowflakes.push(new Snowflake(xPosition, 0, Math.random() * 5));
+        }
+
+        // Updating
+        snowflakes.forEach((s) => s.update());
+        snowflakes = snowflakes.filter((s) => s.y < canvas.height);
+
+        // Drawing
+        for (let i = 0; i < snowflakes.length; i++) {
+          const s = snowflakes[i];
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI, false);
+          ctx.fillStyle = "white";
+          ctx.fill();
+        }
+
+        window.requestAnimationFrame(draw);
+      };
+
+      init();
+    </script>
+  </body>
+</html>
