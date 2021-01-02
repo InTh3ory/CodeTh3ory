@@ -5,17 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <style>
-      body {
+      html, body {
         background-color: black;
-        margin: 0 !important;
-        padding: 0 !important;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
       }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
     <script>
-      let pixelSize = 10; // This could come from somewhere configurable
+      let pixelSize = 1;
       let fireworks = [];
 
       class Spark {
@@ -78,8 +80,7 @@
 
               if (timeSinceExplosion >= expansionDuration) {
                 // We have finished expanding
-                const timeSinceExpansionComplete =
-                  timeSinceExplosion - expansionDuration;
+                const timeSinceExpansionComplete =timeSinceExplosion - expansionDuration;
                 const fadeDuration = 1000;
                 if (timeSinceExpansionComplete <= fadeDuration) {
                   this.opacity = 1 - timeSinceExpansionComplete / fadeDuration;
@@ -135,7 +136,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (Math.random() < 0.01) {
-          const x = canvas.width * 0.25 + Math.random() * canvas.width * 0.5; // Somewhere in the middle 25 - 75 percent of the screen
+          const x = canvas.width * 0.25 + Math.random() * canvas.width * 0.5; // Set x at minimum 25% of the width, and then somewhere between 75%
           const altitude = canvas.height * 0.25 + Math.random() * canvas.height * 0.5;
 
           const minDimension = Math.min(canvas.height, canvas.width);
