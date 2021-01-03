@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Bit Fireworks</title>
+    <style>
+        html, body {
+            background-color: black;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        let fireworks = [];
+        let pixelSize = 10;
+
+        const p = (x) => {
+            return pixelSize * Math.round(x / pixelSize);
+        };
+
+        class Spark {
+            constructor(x, y, angle, maxRadius) {
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.maxRadius = maxRadius;
+                this.radius = 0;
+                this.opacityModifier = Math.random();
+            }
+
+            update() {
+                const radiusIncrease = Math.sqrt(this.maxRadius) * Math.pow((this.maxRadius - this.radius), 3) / Math.pow(this.maxRadius, 3);
+                this.radius += radiusIncrease;
+            }
+
+            draw(ctx, opacity) {
+                const dX = Math.cos(this.angle) * this.radius;
+                const dY = Math.sin(this.angle) * this.radius;
+                ctx.globalAlpha = this.opacityModifier * opacity;
+                ctx.fillRect(p(this.x + dX), p(this.y + dY), pixelSize, pixelSize);
+            }
+        }
+
+        class Firework {
+            constructor(x, y, altitude, colour, size) {
+                this.x = x;
+                this.y = y;
+                this.altitude = altitude;
+                this.colour = colour;
+                this.size = size;
+                this.explodedAt = null;
+                this.sparks = [];
+                this.opacity = 1;
+            }
+
+            draw(ctx) {
+                if (this.explodedAt) {
+                    ctx.fillStyle = this.colour;
+                    this.sparks.forEach(s => s.draw(ctx, this.opacity));
+                } else {
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(p(this.x), p(this.y), pixelSize, pixelSize);
+                }
+            }
+
+            update () {
+                const hasReachedAltitude = this.y <= this.altitude;
+                if (hasReachedAltitude) {
+                    if (this.explodedAt) {
+                        this.sparks.forEach(s => s.update());
+
+                        const timeSinceExplosion = new Date() - this.explodedAt;
+                        const expansionDuration = 2000;
+                        if (timeSinceExplosion >= expansionDuration) {
+                            const timeSinceExpansionComplete = timeSinceExplosion - expansionDuration;
+                            const fadeDuration = 1000;
+                            if (timeSinceExpansionComplete <= fadeDuration) {
+                                this.opacity = 1 - timeSinceExpansionComplete / fadeDuration;
+                            } else {
+                                this.opacity = 0;
+                            } 
+                        }
+                    } else {
+                        this._createSparks();
+                    }
+                } else {
+                    this.y -= 5;
+                }
+                
+                return true;
+            }
+
+            _createSparks() {
+                const numSparks = this.size;
+                for (let i = 0; i < numSparks; i++) {
+                    const angle = Math.random() * 2 * Math.PI;
+                    const maxRadius = this.size * (1 - Math.pow(Math.random(), 2));
+                    this.sparks.push(
+                        new Spark(this.x, this.altitude, angle, maxRadius)
+                    );
+                }
+                this.explodedAt = new Date();
+            }
+        }
+
+        const getColour = () => {
+            const colours = [
+                "#1abc9c",
+                "#2ecc71",
+                "#3498db",
+                "#9b59b6",
+                "#f1c40f",
+                "#e67e22",
+                "#e74c3c",
+                "#ecf0f1"
+            ];
+            return colours[Math.floor(Math.random() * colours.length)];
+        };
+
+        const draw = () => {
+            const canvas = document.getElementById("canvas");
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(Math.random() < 0.01) {
+                const x = canvas.width * Math.random();
+                const altitude = canvas.height * Math.random();
+
+                fireworks.push(new Firework(x, canvas.height, altitude, getColour(), 500));
+            }
+
+            fireworks = fireworks.filter(f => f.update());
+            fireworks.forEach(f => f.draw(ctx));
+
+            window.requestAnimationFrame(draw);
+        };
+
+        window.requestAnimationFrame(draw);
+    </script>
+    
+</body>
+</html>
