@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clock</title>
+  </head>
+  <style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+      }
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+  </style>
+  <body>
+    <canvas id="canvas" data-hour="10" dat-minute="34"></canvas>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const size = 200;
+        const half = size / 2;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        var grd = ctx.createLinearGradient(0, 0, size, size);
+        grd.addColorStop(0, "rgba(63,94,251,1)");
+        grd.addColorStop(1, "rgba(252,70,107,1)");
+
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI, false);
+        ctx.fillStyle = grd;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size * 0.8 / 2, 0, 2 * Math.PI, false);
+        ctx.fillStyle = "white";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, 1, 0, 2 * Math.PI, false);
+        ctx.fillStyle = "black";
+        ctx.fill();
+
+        // Lines
+        const ticks = [0,0.5,1,1.5];
+        for (let i =0; i < ticks.length; i++) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            const dx = Math.cos(ticks[i] * Math.PI) * half;
+            const dy = Math.sin(ticks[i] * Math.PI) * half;
+
+            ctx.moveTo(half + dx * 0.65, half + dy * 0.65);
+            ctx.lineTo(half + dx * 0.8, half + dy * 0.8);
+            ctx.stroke();
+        }
+        const hour = canvas.getAttribute("data-hour");
+        const minute = canvas.getAttribute("data-minute");
+        let hourRad = (hour * Math.PI * 2 / 12) + ((minute / 60) * (Math.PI * 2 / 12));
+        hourRad = hourRad - (Math.PI / 2);
+        let minuteRad = minute * Math.PI * 2 / 60;
+        minuteRad = minuteRad - (Math.PI / 2);
+
+        ctx.beginPath();
+        ctx.moveTo(half, half);
+        ctx.lineWidth = 0.5;
+        const hx = 10 * Math.cos(hourRad);
+        const hy = 10 * Math.sin(hourRad);
+        ctx.lineTo(half + hx, half + hy);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(half, half);
+        ctx.lineWidth = 1;
+        const mx = 15 * Math.cos(minuteRad);
+        const my = 15 * Math.sin(minuteRad);
+        ctx.lineTo(half + mx, half + my);
+        ctx.stroke();
+
+        ctx.beginPath();
+        const shadowStartAngle = Math.PI * -0.25;
+        ctx.arc(size / 2, size / 2, size / 2, shadowStartAngle, shadowStartAngle + Math.PI, false);
+        ctx.globalAlpha = 0.1;
+        ctx.fillStyle = "black";
+        ctx.fill();
+    </script>
+  </body>
+</html>
