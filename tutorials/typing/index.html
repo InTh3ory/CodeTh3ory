@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" type="text/css" href="reset.css" media="screen"/>
+    <link rel="stylesheet" type="text/css" href="styles.css" media="screen"/>
+</head>
+<body>
+    <div id="money-container">
+        <h2>
+            <span id="money">$0</span>
+        </h2>
+        <div>
+            <span id="mps">$0</span>
+        </div>
+    </div>
+    <div class="word-container">
+        <span id="word"></span>
+    </div>
+    <div class="input-container">
+        <input id="type-input" />
+    </div>
+    <div class="shop-container">
+        <ul>
+            <li id="buy-kitten">Kitten $10</li>
+            <li id="buy-sloth">Sloth</li>
+            <li>Monkey</li>
+            <li></li>
+        </ul>
+    </div>
+    <script>
+        let w = 'hello';
+        let money = 100000;
+
+        const shop = {
+            kitten: {
+                cost: 100,
+                rate: 1,
+                img: '',
+                owned: 0,
+            },
+            sloth: {
+                cost: 1000,
+                rate: 1,
+                img: '',
+                owned: 0,
+            },
+            monkey: {
+                cost: 10000,
+                rate: 1,
+                img: '',
+                owned: 0,
+            },
+            pigeon: {
+                cost: 100000,
+                rate: 1,
+                img: '',
+                owned: 0,
+            },
+        };
+        
+
+        const baseValueMap = {
+            b: 3,
+            c: 3,
+            d: 3,
+            f: 4,
+            g: 2,
+            h: 4,
+            j: 8,
+            k: 5,
+            m: 3,
+            p: 3,
+            q: 10,
+            v: 4,
+            w: 4,
+            x: 8,
+            y: 4,
+            z: 10,
+        };
+        const modifiers = [];
+
+        const typeHandler = (e) => {
+            const typed = e.target.value;
+            if (e.target.value === w) {
+                for (let i = 0; i < typed.length; i++) {
+                    money += baseValueMap[typed[i]] || 1;
+                }
+
+                e.target.value = '';
+                const newWord = randomWord();
+                document.getElementById("word").innerHTML = newWord;
+                w = newWord;
+
+            }
+
+            const moneySpan = document.getElementById("money");
+            moneySpan.innerHTML = '';
+            const txt = document.createTextNode(`$${(money/100).toFixed(2)}`);
+            moneySpan.appendChild(txt);
+        };
+
+        const buyKittenHandler = () => {
+            modifiers.push('kitten');
+            money -= 10;
+        };
+        const buySlothHandler = () => {
+            modifiers.push('sloth');
+            money -= 100;
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const typeInput = document.getElementById('type-input');
+
+            typeInput.addEventListener('keyup', typeHandler);
+
+            const buyKitten = document.getElementById('buy-kitten');
+            buyKitten.addEventListener('click', buyKittenHandler);
+
+            const buySloth = document.getElementById('buy-sloth');
+            buySloth.addEventListener('click', buySlothHandler);
+
+            const newWord = randomWord();
+            document.getElementById("word").innerHTML = newWord;
+            w = newWord;
+        });
+
+        setInterval(() => {
+            let mps = 0;
+            for (let i = 0; i < modifiers.length; i++) {
+                switch(modifiers[i]) {
+                    case 'kitten':
+                        money += 1;
+                        mps += 1;
+                    break
+                    case 'sloth': 
+                        money += 10;
+                        mps += 10;
+                    break;
+                }
+            }
+            const mpsSpan = document.getElementById("mps");
+            mpsSpan.innerHTML = '';
+            let txt = document.createTextNode(`$${(mps/100).toFixed(2)}/s `);
+            mpsSpan.appendChild(txt);
+
+            const moneySpan = document.getElementById("money");
+            moneySpan.innerHTML = '';
+            txt = document.createTextNode(`$${(money/100).toFixed(2)}`);
+            moneySpan.appendChild(txt);
+
+
+
+        }, 1000);
+
+
+        const words = ["a", "about", "all", "also", "and", "as", "at", "be", "because", "but", "by", "can", "come", "could", "day", "do", "even", "find", "first", "for", "from", "get", "give", "go", "have", "he", "her", "here", "him", "his", "how", "I", "if", "in", "into", "it", "its", "just", "know", "like", "look", "make", "man", "many", "me", "more", "my", "new", "no", "not", "now", "of", "on", "one", "only", "or", "other", "our", "out", "people", "say", "see", "she", "so", "some", "take", "tell", "than", "that", "the", "their", "them", "then", "there", "these", "they", "thing", "think", "this", "those", "time", "to", "two", "up", "use", "very", "want", "way", "we", "well", "what", "when", "which", "who", "will", "with", "would", "year", "you", "your"];
+        const randomWord = () => words[Math.floor(Math.random() * words.length)];
+    </script>
+</body>
+</html>

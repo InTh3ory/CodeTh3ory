@@ -6,16 +6,15 @@
     <title>Clock</title>
   </head>
   <body>
-    <canvas id="canvas" data-hour="12" data-minute="4"></canvas>
+    <canvas id="canvas" data-hour="10" data-minute="34"></canvas>
     <script>
-        // Designed by https://dribbble.com/shots/1015985-Clock
         const canvas = document.getElementById("canvas");
         const size = 800;
         const radius = size / 2;
 
         canvas.width = size;
         canvas.height = size;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
 
         const cx = radius;
         const cy = radius;
@@ -23,7 +22,6 @@
         const thinLine = radius / 50;
         const superThinLine = radius / 100;
 
-        /* 3 Circles - Rim, Face, and Gear */
         const drawCircle = (r, fill, startAngle, endAngle) => {
           ctx.beginPath();
           ctx.arc(cx, cy, r, startAngle, endAngle, false);
@@ -31,18 +29,18 @@
           ctx.fill();
         };
 
-        var gradient = ctx.createLinearGradient(0, 0, size, size); // x0 y0 x1 y2
-        gradient.addColorStop(0, "rgba(63,94,251,1)");
-        gradient.addColorStop(1, "rgba(252,70,107,1)");
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, "rgb(63,94,251)");
+        gradient.addColorStop(1, "rgb(252,70,107)");
+
 
         drawCircle(radius, gradient, 0, 2 * Math.PI);
         drawCircle(radius * 0.8, 'white', 0, 2 * Math.PI);
         drawCircle(radius / 50, 'black', 0, 2 * Math.PI);
 
-        // Lines
-        const drawPolarLine = (angle, start, end, width, fill) => {
+        const drawPolarLine = (angle, start, end, width, strokeStyle) => {
           ctx.beginPath();
-          ctx.strokeStyle = fill;
+          ctx.strokeStyle = strokeStyle;
           ctx.lineWidth = width;
 
           const xComponent = radius * Math.cos(angle);
@@ -64,23 +62,23 @@
         drawPolarLine(Math.PI, 0.65, 0.8, thinLine, 'black');
         drawPolarLine(3 * Math.PI / 2, 0.65, 0.8, thinLine, 'black');
 
-        /* Hour & Minute Lines */
         const hour = canvas.getAttribute("data-hour");
         const minute = canvas.getAttribute("data-minute");
 
         let hourRatio = hour / 12;
         let minuteRatio = minute / 60;
-        hourRatio +=  minuteRatio / 12;
+        hourRatio += minuteRatio / 12;
 
         let hourAngle = hourRatio * Math.PI * 2;
         let minuteAngle = minuteRatio * Math.PI * 2;
 
-
         drawPolarLine(minuteAngle - (Math.PI / 2), 0, 0.5, thinLine, 'black');
-        drawPolarLine(hourAngle - (Math.PI / 2), 0, 0.25, superThinLine, '#333');
+        drawPolarLine(hourAngle - (Math.PI /2), 0, 0.25, superThinLine, '#333');
 
         ctx.globalAlpha = 0.1;
-        drawCircle(radius, 'black', Math.PI * (-1/4), Math.PI * 3 / 4);
+        drawCircle(radius, 'black', Math.PI *(-1/4), Math.PI * 3/4);
+
+
     </script>
   </body>
 </html>
