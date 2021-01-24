@@ -8,59 +8,275 @@
     <link rel="stylesheet" type="text/css" href="styles.css" media="screen"/>
 </head>
 <body>
-    <div id="money-container">
-        <h2>
-            <span id="money">$0</span>
-        </h2>
-        <div>
-            <span id="mps">$0</span>
+    <div>
+        <div id="monies-container">
+            <h2>
+                <span id="monies">0</span> wool
+            </h2>
+            <div>
+                <span id="monies-per-second">0</span> per second
+            </div>
+            <div>
+                <span id="streak">0</span> streak
+            </div>
         </div>
     </div>
-    <div class="word-container">
-        <span id="word"></span>
+    <div>
+        <div id="word-container">
+        </div>
+        <br />
+        <div class="input-container">
+            <input id="type-input" />
+        </div>
+        <div id="wool-register"></div>
     </div>
-    <div class="input-container">
-        <input id="type-input" />
-    </div>
-    <div class="shop-container">
-        <ul>
-            <li id="buy-kitten">Kitten $10</li>
-            <li id="buy-sloth">Sloth</li>
-            <li>Monkey</li>
-            <li></li>
-        </ul>
+    <div>
+        <div id="shop-container"></div>
     </div>
     <script>
-        let w = 'hello';
-        let money = 100000;
+        // const phrase = "A slave named Androcles once escaped from his master and fled to the forest. As he was wandering about there he came upon a Lion lying down moaning and groaning. At first he turned to flee, but finding that the Lion did not pursue him, he turned back and went up to him.";
+        const phrase = `A Dog used to run up quietly to the heels of those he met, and to bite them without notice. His master sometimes suspended a bell about his neck, that he might give notice of his presence wherever he went, and sometimes he fastened a chain about his neck, to which was attached a heavy clog, so that he could not be so quick at biting people's heels. The Dog grew proud of his bell and clog, and went with them all over the market-place. An old hound said to him: "Why do you make such an exhibition of yourself? That bell and clog that you carry are not, believe me, orders of merit, but, on the contrary, marks of disgrace, a public notice to all men to avoid you as an ill-mannered dog.`;
+        /* 
+            Sheep
+                Merino, Rambouillet, and Debouillet
+                Targhee, Suffolk and Cheviot
+                Lincoln and Romney
+            Angora Goat
+                Cashmere
+                Mohair
+            Lamas
+                Alpacas
+                Llamas
+                Vicunas
+                Guanacos
+            Camels
 
-        const shop = {
-            kitten: {
-                cost: 100,
-                rate: 1,
-                img: '',
-                owned: 0,
+            Rabbits
+                Angora
+                Jersey Wooly
+            
+            Bison
+            
+            Musk Oxen
+
+            Woolly Rhinoceros
+            Woolly Mammoth
+
+            https://10fastfingers.com/typing-test/english
+
+        */
+        const state = {
+            streak: 0,
+            quality: 1,
+            wordIndex: 0,
+            wordCount: 0,
+            monies: 1000,
+            moniesPerSecond: 0,
+            recentWords: [],
+            upgrades: {
+
             },
-            sloth: {
-                cost: 1000,
-                rate: 1,
-                img: '',
-                owned: 0,
-            },
-            monkey: {
-                cost: 10000,
-                rate: 1,
-                img: '',
-                owned: 0,
-            },
-            pigeon: {
-                cost: 100000,
-                rate: 1,
-                img: '',
-                owned: 0,
+            shop: {
+                rabbit: {
+                    label: 'Rabbit',
+                    cost: 100,
+                    rate: 1,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                },
+                goat: {
+                    label: 'Goat',
+                    cost: 1000,
+                    rate: 10,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                },
+                sheep: {
+                    label: 'Sheep',
+                    cost: 10000,
+                    rate: 100,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                },
+                alpaca: {
+                    label: 'Alpaca',
+                    cost: 100000,
+                    rate: 1000,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                },
+                camel: {
+                    label: 'Camel',
+                    cost: 1000000,
+                    rate: 10000,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                },
+                bison: {
+                    label: 'Bison',
+                    cost: 10000000,
+                    rate: 1,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                },
+                muskOx: {
+                    label: 'Musk Ox',
+                    cost: 100000000,
+                    rate: 1,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                },
+                muskOx: {
+                    label: 'Musk Ox',
+                    cost: 1000000000,
+                    rate: 1,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                },
+                woollyMammoth: {
+                    label: 'Woolly Mammoth',
+                    cost: 10000000000,
+                    rate: 1,
+                    img: '',
+                    owned: 0,
+                    produced: 0,
+                }
             },
         };
-        
+
+        const shopItemHandler = (e) => {
+            const key = e.target.getAttribute('data-key');
+            const itemState = state.shop[key];
+            if (itemState.cost <= state.monies) {
+                itemState.owned++;
+                itemState.cost *= 1.1;
+                state.monies -= itemState.cost;
+            }
+            renderShop();
+        };
+
+        const update = () => {
+            state.moniesPerSecond = 0;
+
+            Object.entries(state.shop).forEach(([key, value]) => {
+                if (value.owned) {
+                    state.monies += (value.owned * value.rate) / 10;
+                    state.moniesPerSecond += value.owned * value.rate;
+                }
+            });
+
+            render();
+        };
+
+        const helpers = {
+            text: (value, element) => {
+                const span = document.createElement(element);
+                const text = document.createTextNode(value);
+                span.appendChild(text);
+                return span;
+            }
+        };
+
+        const render = () => {
+            const mpsSpan = document.getElementById("monies-per-second");
+            mpsSpan.innerHTML = '';
+            let txt = document.createTextNode(state.moniesPerSecond);
+            mpsSpan.appendChild(txt);
+
+            const moneySpan = document.getElementById("monies");
+            moneySpan.innerHTML = '';
+            txt = document.createTextNode(`${Math.round(state.monies)}`);
+            moneySpan.appendChild(txt);
+
+            const streakSpan = document.getElementById('streak');
+            streakSpan.innerHTML = '';
+            txt = document.createTextNode(`${state.streak}`);
+            streakSpan.appendChild(txt);
+
+            const activeText = document.getElementsByClassName('active')[0];
+            if (activeText && activeText.offsetTop > 30) {
+                let current = document.querySelector('.active');
+                let prevSibling = current.previousElementSibling;
+                while(prevSibling) {
+                    prevSibling.remove();
+                    prevSibling = current.previousElementSibling;
+                }
+
+                if (document.getElementById('word-container').childElementCount < 50) {
+                    addWords(phrase, true);
+                }
+            }
+
+            const register = document.getElementById('wool-register');
+            while(state.recentWords.length) {
+                const latest = state.recentWords.pop();
+                const text = `${latest.word} +${latest.value}`;
+                const node = helpers.text(text, 'div');
+                register.insertBefore(node, register.firstChild);
+            }
+            while(register.childElementCount > 3) {
+                register.lastChild.remove();
+            }
+        };
+
+        const renderShop = () => {
+            const shopContainer = document.getElementById('shop-container');
+            shopContainer.innerHTML = '';
+
+            const list = document.createElement('ul');
+            
+            let ownsPreviousEntry = false;
+            Object.entries(state.shop).forEach(([key, value]) => {
+                if (state.monies >= value.cost || ownsPreviousEntry || value.owned) {
+                    const li = document.createElement('li');
+                    li.addEventListener('click', shopItemHandler);
+                    li.setAttribute('data-key', key);
+                    const label = document.createTextNode(`${value.label} ${Math.round(value.cost)} - Owned ${value.owned}`);
+                    li.appendChild(label);
+                    list.appendChild(li);
+                }
+                ownsPreviousEntry = !!value.owned;
+            });
+
+            shopContainer.appendChild(list);
+        };
+
+        const addWords = (phrase, paragraph) => {
+            const words = phrase.split(' ');
+            const wordContainer = document.getElementById('word-container');
+
+            if (paragraph) {
+                wordContainer.appendChild(document.createElement('br'));
+                wordContainer.appendChild(document.createElement('br'));
+            }
+
+            words.forEach((word) => {
+                const span = document.createElement('span');
+                span.setAttribute('data-index', state.wordCount);
+                const node = document.createTextNode(word);
+                span.appendChild(node);
+                wordContainer.appendChild(span);
+                state.wordCount++;
+            });
+        }
+
+        const init = () => {
+            renderShop();
+            update();
+
+
+            addWords(phrase, false);
+        };
+
+        init();        
 
         const baseValueMap = {
             b: 3,
@@ -82,81 +298,48 @@
         };
         const modifiers = [];
 
+        let typed = '';
         const typeHandler = (e) => {
             const typed = e.target.value;
-            if (e.target.value === w) {
-                for (let i = 0; i < typed.length; i++) {
-                    money += baseValueMap[typed[i]] || 1;
+
+            const span = document.querySelectorAll(`[data-index="${state.wordIndex}"]`)[0];
+            const word = span.innerText;
+            const entered = typed.split(' ');
+            if (e.keyCode === 32) {
+                if (entered[0] === word) {
+                    let value = 0;
+                    for (let i = 0; i < typed.length; i++) {
+                        const increment = baseValueMap[typed[i]] || 1;
+                        state.monies += increment;
+                        value += increment;
+                        state.streak++;
+                    }
+                    state.recentWords.push({ word: entered[0], value: value });
+                    span.classList.remove('active');
+                    state.wordIndex++;
+                    document.querySelectorAll(`[data-index="${state.wordIndex}"]`)[0].classList.add('active');
+                    e.target.value = e.target.value.replace(entered[0] + ' ', '');
+                } else {
+                    
                 }
 
-                e.target.value = '';
-                const newWord = randomWord();
-                document.getElementById("word").innerHTML = newWord;
-                w = newWord;
-
+            } else {
+                const partial = word.substring(0, entered[0].length);
+                if (entered[0] && partial !== entered[0]) {
+                    span.classList.add('mistake');
+                }
             }
 
-            const moneySpan = document.getElementById("money");
-            moneySpan.innerHTML = '';
-            const txt = document.createTextNode(`$${(money/100).toFixed(2)}`);
-            moneySpan.appendChild(txt);
-        };
-
-        const buyKittenHandler = () => {
-            modifiers.push('kitten');
-            money -= 10;
-        };
-        const buySlothHandler = () => {
-            modifiers.push('sloth');
-            money -= 100;
+            render();
         };
 
         window.addEventListener('DOMContentLoaded', () => {
             const typeInput = document.getElementById('type-input');
-
             typeInput.addEventListener('keyup', typeHandler);
-
-            const buyKitten = document.getElementById('buy-kitten');
-            buyKitten.addEventListener('click', buyKittenHandler);
-
-            const buySloth = document.getElementById('buy-sloth');
-            buySloth.addEventListener('click', buySlothHandler);
-
-            const newWord = randomWord();
-            document.getElementById("word").innerHTML = newWord;
-            w = newWord;
         });
 
-        setInterval(() => {
-            let mps = 0;
-            for (let i = 0; i < modifiers.length; i++) {
-                switch(modifiers[i]) {
-                    case 'kitten':
-                        money += 1;
-                        mps += 1;
-                    break
-                    case 'sloth': 
-                        money += 10;
-                        mps += 10;
-                    break;
-                }
-            }
-            const mpsSpan = document.getElementById("mps");
-            mpsSpan.innerHTML = '';
-            let txt = document.createTextNode(`$${(mps/100).toFixed(2)}/s `);
-            mpsSpan.appendChild(txt);
-
-            const moneySpan = document.getElementById("money");
-            moneySpan.innerHTML = '';
-            txt = document.createTextNode(`$${(money/100).toFixed(2)}`);
-            moneySpan.appendChild(txt);
-
-
-
-        }, 1000);
-
-
-        const words = ["a", "about", "all", "also", "and", "as", "at", "be", "because", "but", "by", "can", "come", "could", "day", "do", "even", "find", "first", "for", "from", "get", "give", "go", "have", "he", "her", "here", "him", "his", "how", "I", "if", "in", "into", "it", "its", "just", "know", "like", "look", "make", "man", "many", "me", "more", "my", "new", "no", "not", "now", "of", "on", "one", "only", "or", "other", "our", "out", "people", "say", "see", "she", "so", "some", "take", "tell", "than", "that", "the", "their", "them", "then", "there", "these", "they", "thing", "think", "this", "those", "time", "to", "two", "up", "use", "very", "want", "way", "we", "well", "what", "when", "which", "who", "will", "with", "would", "year", "you", "your"];
+        setInterval(update, 100);
+        
         const randomWord = () => words[Math.floor(Math.random() * words.length)];
     </script>
 </body>

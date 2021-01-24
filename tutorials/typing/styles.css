@@ -1,5 +1,8 @@
 html, body {
     padding: 0;
+    font-family: "Lucida Console", "Courier New", monospace;
+    line-height: 1.4;
+    font-size: 16px;
 }
 
 h1 {
@@ -9,6 +12,43 @@ h2 {
     font-size: 18px;
 }
 
-.typing-container {
+body {
+    display: flex;
+    justify-content: center;
+}
 
+body > div {
+    margin: 20px;
+}
+
+input { 
+    font-family: inherit;
+    font-size: inherit;
+    padding: 8px;
+    width: 100%;
+}
+
+.active {
+    text-decoration: underline;
+}
+
+.mistake {
+    color: #B60000;
+}
+
+#word-container {
+    max-width: 400px;
+    height: 64px;
+    overflow: hidden;
+}
+#word-container span {
+    margin-right: 10px;
+    display: inline-block;
+}
+
+#wool-register{
+    margin-top: 10px;
+    height: 64px;
+    overflow: hidden;
+    opacity: 0.5;
 }
