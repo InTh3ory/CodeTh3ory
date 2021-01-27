@@ -2,7 +2,7 @@ html, body {
     padding: 0;
     font-family: "Lucida Console", "Courier New", monospace;
     line-height: 1.4;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 h1 {
@@ -28,8 +28,13 @@ input {
     width: 100%;
 }
 
+canvas {
+    /* border: 1px solid black; */
+}
+
 .active {
     text-decoration: underline;
+    color: #3498db;
 }
 
 .mistake {
@@ -38,7 +43,7 @@ input {
 
 #word-container {
     max-width: 400px;
-    height: 64px;
+    height: 52px;
     overflow: hidden;
 }
 #word-container span {
@@ -48,7 +53,7 @@ input {
 
 #wool-register{
     margin-top: 10px;
-    height: 64px;
+    height: 72px;
     overflow: hidden;
     opacity: 0.5;
 }
