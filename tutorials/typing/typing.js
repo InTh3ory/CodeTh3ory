@@ -39,6 +39,7 @@ const state = {
     monies: 100000,
     moniesPerSecond: 0,
     recentWords: [],
+    cart: [],
     upgrades: {
         shop: {
 
@@ -47,9 +48,16 @@ const state = {
 
         },
     },
-    land: {
-        cost: 1000,
-        size: 15,
+    landscapeShop: {
+        acre: {
+            label: 'Acre',
+            cost: 50,
+            img: 'assets/grass.jpg',
+            owned: 0,
+            w: 5,
+            h: 5,
+            locations: [],
+        }
     },
     farmBuildings: {
     },
@@ -139,6 +147,17 @@ const shopItemHandler = (e) => {
     }
     renderShop();
 };
+const landscapeItemHandler = (e) => {
+    const key = e.target.getAttribute('data-key');
+    const itemState = state.landscapeShop[key];
+    if (itemState.cost <= state.monies) {
+        itemState.owned++;
+        state.monies -= itemState.cost;
+        itemState.cost *= 1.1;
+        state.cart.push(key);
+    }
+    renderLandscapeShop();
+}
 
 const update = () => {
     state.moniesPerSecond = 0;
@@ -225,6 +244,27 @@ const renderShop = () => {
 
     shopContainer.appendChild(list);
 };
+const renderLandscapeShop = () => {
+    const shopContainer = document.getElementById('landscape-container');
+    shopContainer.innerHTML = '';
+
+    const list = document.createElement('ul');
+    
+    let ownsPreviousEntry = false;
+    Object.entries(state.landscapeShop).forEach(([key, value], i) => {
+        if (state.monies >= value.cost || ownsPreviousEntry || value.owned || !i) {
+            const li = document.createElement('li');
+            li.addEventListener('click', landscapeItemHandler);
+            li.setAttribute('data-key', key);
+            const label = document.createTextNode(`${value.label} ${Math.round(value.cost)} - Owned ${value.owned}`);
+            li.appendChild(label);
+            list.appendChild(li);
+        }
+        ownsPreviousEntry = !!value.owned;
+    });
+
+    shopContainer.appendChild(list);
+}; // Dupe
 
 const addWords = (phrase, paragraph) => {
     const words = phrase.split(' ');
@@ -250,6 +290,7 @@ const addWords = (phrase, paragraph) => {
 
 const init = () => {
     renderShop();
+    renderLandscapeShop();
     update();
 
     addWords(phrase, false);

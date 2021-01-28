@@ -8,7 +8,7 @@
     const landWidth = 1500;
 
     const fs = {
-        boxel: 25,
+        boxel: 10,
         mouse: {
             x: 0,
             y: 0,
@@ -25,6 +25,10 @@
             y: landHeight / 2,
             zoom: 1,
         },
+        canvas: {
+            w: 0,
+            h: 0,
+        }
     };
 
     const pixelSize = 20;
@@ -92,6 +96,13 @@
             isLoaded();
         };
 
+        const acreImg = document.createElement('img');
+        acreImg.src = state.landscapeShop['acre'].img;
+        acreImg.onload = () => {
+            assets.acre = acreImg;
+            isLoaded();
+        };
+
         document.getElementById("canvas").addEventListener('mousemove', (evt) => {
             var rect = canvas.getBoundingClientRect();
             fs.mouse.x = (evt.clientX - rect.left) / (rect.right - rect.left) * canvas.width;
@@ -112,10 +123,26 @@
             fs.mouse.down.ogCameraX = fs.camera.x;
             fs.mouse.down.ogCameraY = fs.camera.y;
             ++fs.mouse.down.is;
+            if (state.cart.length) {
+                const mouseGameX = fs.camera.x - (fs.canvas.w / (2 * fs.camera.zoom)) + (fs.mouse.x / fs.camera.zoom); // Canvas to Game Coordinate Conversion
+                const mouseGameY = fs.camera.y - (fs.canvas.h / (2 * fs.camera.zoom)) + (fs.mouse.y / fs.camera.zoom);
+                const mr = Math.floor(mouseGameY / fs.boxel);
+                const mc = Math.floor(mouseGameX / fs.boxel);
+                
+            }
         });
         document.getElementById("canvas").addEventListener('mouseup', (evt) => {
             --fs.mouse.down.is;
         });
+        document.getElementById("canvas").addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const newZoom = fs.camera.zoom + e.deltaY * -0.01;
+            if (newZoom < 5 && newZoom > 0.4) {
+                fs.camera.zoom+= e.deltaY * -0.005;
+            }
+
+        });
+
     };
 
     const p = (x) => {
@@ -133,10 +160,36 @@
 
     };
 
+    const renderGrid = (ctx, canvas, boxel, distanceFromTop, distanceFromLeft) => {
+        ctx.lineWidth = 0.25;
+        const verticalBoxes = Math.ceil((canvas.height) / boxel);
+        const horizontalBoxes = Math.ceil(canvas.width / boxel);
+
+        for(let i = 0; i <= verticalBoxes; i++) {
+            ctx.beginPath();
+            const rowCoordinate = (i * boxel) - (distanceFromTop);
+
+            ctx.moveTo(0, rowCoordinate);
+            ctx.lineTo(verticalBoxes * boxel, rowCoordinate);
+            ctx.stroke();
+        }
+        // Draw Columns - Vertical Lines
+        for (let i = 0; i <= horizontalBoxes; i++) {
+            ctx.beginPath();
+            const rowCoordinate = (i * boxel) - (distanceFromLeft);
+
+            ctx.moveTo(rowCoordinate, 0);
+            ctx.lineTo(rowCoordinate, verticalBoxes * boxel);
+            ctx.stroke();
+        }
+    };
 
     const draw = () => {
         const canvas = document.getElementById("canvas");
         const size = 400;
+        fs.canvas.w = size;
+        fs.canvas.h = size;
+
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext('2d');
@@ -146,39 +199,32 @@
         // Step 1: Figure out which boxel the camera is in
         const r = Math.floor(fs.camera.y / fs.boxel);
         const c = Math.floor(fs.camera.x / fs.boxel);
-        const distanceFromTop = fs.camera.y % fs.boxel; // Pixels away from the top of the boxel the camera is in. Game scale.
-        const distanceFromLeft = fs.camera.x % fs.boxel;
+        const distanceFromTop = (fs.camera.y % fs.boxel) * fs.camera.zoom; // Pixels away from the top of the boxel the camera is in. Game scale.
+        const distanceFromLeft = (fs.camera.x % fs.boxel) * fs.camera.zoom;
 
         // Step 1.5: Figure out which boxel the mouse is in
-        const mouseGameX = fs.camera.x - (canvas.width / (2 * fs.camera.zoom)) + (fs.mouse.x / fs.camera.zoom); // Canvas to Game Coordinate Conversion
-        const mouseGameY = fs.camera.y - (canvas.height / (2 * fs.camera.zoom)) + (fs.mouse.y / fs.camera.zoom);
+        const mouseGameX = fs.camera.x - (fs.canvas.w / (2 * fs.camera.zoom)) + (fs.mouse.x / fs.camera.zoom); // Canvas to Game Coordinate Conversion
+        const mouseGameY = fs.camera.y - (fs.canvas.h / (2 * fs.camera.zoom)) + (fs.mouse.y / fs.camera.zoom);
         const mr = Math.floor(mouseGameY / fs.boxel);
         const mc = Math.floor(mouseGameX / fs.boxel);
-        console.log(mr, mc);
+        // console.log(mr, mc);
 
         // Step 2: Draw the box we are in according to the zoom
         const boxel = fs.boxel * fs.camera.zoom;
-        const verticalBoxes = Math.floor(canvas.height / boxel);
-        const horizontalBoxes = Math.floor(canvas.width / boxel);
 
-        // Draw Rows - Horizontal Lines
-        for(let i = 0; i < verticalBoxes; i++) {
-            ctx.beginPath();
-            const rowCoordinate = (i * boxel) - distanceFromTop;
 
-            ctx.moveTo(0, rowCoordinate);
-            ctx.lineTo(verticalBoxes * boxel, rowCoordinate);
-            ctx.stroke();
+        if (state.cart.length) {
+            renderGrid(ctx, canvas, boxel, distanceFromTop, distanceFromLeft);
+
+            // Render Cart Item
+            if (state.cart[0] === 'acre') {
+                const itemX = (Math.floor((fs.mouse.x + distanceFromLeft) / boxel) * boxel) - distanceFromLeft;
+                const itemY = (Math.floor((fs.mouse.y + distanceFromTop) / boxel) * boxel) - distanceFromTop;
+                ctx.drawImage(assets['acre'], itemX, itemY, state.landscapeShop['acre'].w * boxel, state.landscapeShop['acre'].h * boxel);
+            }
+
         }
-        // Draw Columns - Vertical Lines
-        for (let i = 0; i < horizontalBoxes; i++) {
-            ctx.beginPath();
-            const rowCoordinate = (i * boxel) - distanceFromLeft;
-
-            ctx.moveTo(rowCoordinate, 0);
-            ctx.lineTo(rowCoordinate, verticalBoxes * boxel);
-            ctx.stroke();
-        }
+        
 
 
         ctx.beginPath();
@@ -193,74 +239,12 @@
         ctx.fillStyle = 'blue';
         ctx.fill();
 
-        // const resolution = size / pixelSize;
-        // const blockSize = resolution;
-
-        // const rowNum = p(size / 2) / pixelSize;
-        // const colNum = p(size / 2) / pixelSize;
+       
 
 
-        // Draw Land
-        // const landCoords = pixelate( colNum, rowNum, state.land.size);
-        // ctx.fillStyle = '#27ae60';
-        // ctx.fillRect(landCoords.x, landCoords.y, landCoords.w, landCoords.h);
-        // Draw Fence
-        // ctx.lineWidth = 2;
-        // ctx.strokeStyle = 'brown';
-        // ctx.beginPath();
-        // ctx.rect(landCoords.x, landCoords.y, landCoords.w, landCoords.h);
-        // ctx.stroke();
-        // Animal Boundaries
-        // landBoundaries.xMin = landCoords.x;
-        // landBoundaries.xMax = landCoords.x + landCoords.w - pixelSize;
-        // landBoundaries.yMin = landCoords.y;
-        // landBoundaries.yMax = landCoords.y + landCoords.h - pixelSize;
 
-        // Object.entries(state.shop).forEach(([key, value]) => {
-        //     if (!animals[key]) {
-        //         animals[key] = [];
-        //     }
-        //     const animalsToAdd = value.owned - animals[key].length;
-        //     if (animalsToAdd > 0) {
-
-        //         for (let i =0; i < animalsToAdd; i++) {
-        //             animals[key].push(new Animal(Math.random() * size, Math.random() * size, value.img, value.size));
-        //         }
-
-        //     } else if (animalsToAdd < 0) {
-
-        //         for (let i = animalsToAdd; i < 0; i++) {
-        //             animals[key].shift();
-        //         }
-        //     }
-        // });
-
-        // Object.entries(animals).forEach(([key, value]) => {
-        //     value.forEach((animal) => {
-        //         animal.update();
-        //         animal.draw(ctx, assets[key]);
-        //     });
-        // });
-
-        // const farmCoords = pixelate(colNum, rowNum, 5);
-        // ctx.drawImage(assets.farm, farmCoords.x, farmCoords.y, farmCoords.w, farmCoords.h);
-
-
-        // Grid Lines
-        // ctx.lineWidth = 1;
-        // for (let i = 0; i < resolution; i++) {
-        //     ctx.strokeStyle = 'rgba(0,0,0,0.05)';
-        //     ctx.beginPath();
-        //     ctx.moveTo(i * pixelSize, 0);
-        //     ctx.lineTo(i * pixelSize, size);
-        //     ctx.stroke();
-        //     ctx.moveTo(0, i * pixelSize);
-        //     ctx.lineTo(size, i * pixelSize);
-        //     ctx.stroke();
-        // }
-
-
-        setTimeout(() => { window.requestAnimationFrame(draw) }, 100);
+        // setTimeout(() => { window.requestAnimationFrame(draw) }, 500);
+        window.requestAnimationFrame(draw)
     };
     
     init();
