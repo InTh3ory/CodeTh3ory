@@ -8,7 +8,7 @@
     const landWidth = 1500;
 
     const fs = {
-        boxel: 10,
+        boxel: 100,
         mouse: {
             x: 0,
             y: 0,
@@ -21,9 +21,9 @@
             }
         },
         camera: {
-            x: landWidth / 2,
-            y: landHeight / 2,
-            zoom: 1,
+            x: 0,
+            y: 0,
+            zoom: 2,
         },
         canvas: {
             w: 0,
@@ -111,8 +111,8 @@
             if (fs.mouse.down.is) {
                 const dx = fs.mouse.x - fs.mouse.down.x;
                 const dy = fs.mouse.y - fs.mouse.down.y;
-                fs.camera.x = fs.mouse.down.ogCameraX - dx;
-                fs.camera.y = fs.mouse.down.ogCameraY - dy;
+                fs.camera.x = fs.mouse.down.ogCameraX - (dx / fs.camera.zoom);
+                fs.camera.y = fs.mouse.down.ogCameraY - (dy / fs.camera.zoom);
             }
         });
         // Drag
@@ -128,8 +128,16 @@
                 const mouseGameY = fs.camera.y - (fs.canvas.h / (2 * fs.camera.zoom)) + (fs.mouse.y / fs.camera.zoom);
                 const mr = Math.floor(mouseGameY / fs.boxel);
                 const mc = Math.floor(mouseGameX / fs.boxel);
-                
+                state.landscapeShop.acre.locations.push({ r: mr, c: mc });
+                state.cart.pop();
             }
+
+            // Debugging
+            const mouseGameX = fs.camera.x - (fs.canvas.w / (2 * fs.camera.zoom)) + (fs.mouse.x / fs.camera.zoom); // Canvas to Game Coordinate Conversion
+            const mouseGameY = fs.camera.y - (fs.canvas.h / (2 * fs.camera.zoom)) + (fs.mouse.y / fs.camera.zoom);
+            const mr = Math.floor(mouseGameY / fs.boxel);
+            const mc = Math.floor(mouseGameX / fs.boxel);
+            console.log(mr, mc);
         });
         document.getElementById("canvas").addEventListener('mouseup', (evt) => {
             --fs.mouse.down.is;
@@ -160,33 +168,67 @@
 
     };
 
-    const renderGrid = (ctx, canvas, boxel, distanceFromTop, distanceFromLeft) => {
+    const renderGrid = (ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL) => {
         ctx.lineWidth = 0.25;
         const verticalBoxes = Math.ceil((canvas.height) / boxel);
         const horizontalBoxes = Math.ceil(canvas.width / boxel);
 
+        // How far is 0,0 away from the nearest point
+
+
         for(let i = 0; i <= verticalBoxes; i++) {
             ctx.beginPath();
-            const rowCoordinate = (i * boxel) - (distanceFromTop);
+            const rowCoordinate = (i * boxel) - (canvasZeroDFT);
 
             ctx.moveTo(0, rowCoordinate);
-            ctx.lineTo(verticalBoxes * boxel, rowCoordinate);
+            ctx.lineTo(verticalBoxes * boxel, rowCoordinate); // Draw Lines Left to Right
             ctx.stroke();
         }
-        // Draw Columns - Vertical Lines
+        
         for (let i = 0; i <= horizontalBoxes; i++) {
             ctx.beginPath();
-            const rowCoordinate = (i * boxel) - (distanceFromLeft);
+            const rowCoordinate = (i * boxel) - (canvasZeroDFL);
 
             ctx.moveTo(rowCoordinate, 0);
-            ctx.lineTo(rowCoordinate, verticalBoxes * boxel);
+            ctx.lineTo(rowCoordinate, verticalBoxes * boxel); // Draw lines top to bottom
             ctx.stroke();
         }
+    };
+    const renderScene = (ctx, canvas, boxel, distanceFromTop, distanceFromLeft) => {
+        // Determine game row / column of canvas pixel 0,0
+
+        // How Many Columns?
+        const numColumns = Math.ceil(canvas.width / boxel);
+        const numRows = Math.ceil(canvas.width / boxel);
+        for (let i = 0; i < numRows; i++) {
+            for (let j = 0; j < numColumns; j++) {
+                const mouseGameX = fs.camera.x - (fs.canvas.w / (2 * fs.camera.zoom)) + ((j * boxel) / fs.camera.zoom); // Canvas to Game Coordinate Conversion
+                const mouseGameY = fs.camera.y - (fs.canvas.h / (2 * fs.camera.zoom)) + ((i * boxel) / fs.camera.zoom);
+                const mr = Math.floor(mouseGameY / fs.boxel);
+                const mc = Math.floor(mouseGameX / fs.boxel);
+
+            
+                ctx.fillText(`${mr} ${mc}`, (j * boxel) + 10 - distanceFromLeft, (i * boxel) + 10 - distanceFromTop);
+                // Is there something in this box? If yes, draw it
+                // state.landscapeShop.acre.locations.forEach((coord) => {
+                //     if (coord.r === row && coord.c === col) {
+                //         const canvasX = j * boxel;
+                //         const canvasY = i * boxel;
+                //         const itemX = (canvasX) - distanceFromLeft;
+                //         const itemY = (canvasY) - distanceFromTop;
+                //         ctx.drawImage(assets['acre'], itemX, itemY, state.landscapeShop['acre'].w * boxel, state.landscapeShop['acre'].h * boxel);
+                //     }
+                // });
+            }
+        }
+
+
+        // Determine how may boxels are on screen then loop
     };
 
     const draw = () => {
         const canvas = document.getElementById("canvas");
-        const size = 400;
+        const size = 500;
         fs.canvas.w = size;
         fs.canvas.h = size;
 
@@ -199,8 +241,25 @@
         // Step 1: Figure out which boxel the camera is in
         const r = Math.floor(fs.camera.y / fs.boxel);
         const c = Math.floor(fs.camera.x / fs.boxel);
-        const distanceFromTop = (fs.camera.y % fs.boxel) * fs.camera.zoom; // Pixels away from the top of the boxel the camera is in. Game scale.
-        const distanceFromLeft = (fs.camera.x % fs.boxel) * fs.camera.zoom;
+        // const distanceFromTop = fs.camera.y % (fs.boxel * fs.camera.zoom); // Pixels away from the top of the boxel the camera is in. Game scale.
+        // const distanceFromLeft = fs.camera.x % (fs.boxel * fs.camera.zoom);
+
+        const canvasZeroGameX = fs.camera.x - (canvas.width / (2 * fs.camera.zoom)); // x coordinate of canvas 0,0
+        let canvasZeroDFL = 0;
+        if (canvasZeroGameX < 0 ) {
+            canvasZeroDFL = Math.abs(fs.boxel + (canvasZeroGameX % (fs.boxel))) * fs.camera.zoom;
+        } else {
+            canvasZeroDFL = Math.abs(canvasZeroGameX % (fs.boxel)) * fs.camera.zoom;
+        }
+
+        const canvasZeroGameY = fs.camera.y - (canvas.height / (2 * fs.camera.zoom)); // y coordinate of canvas 0,0
+        let canvasZeroDFT = 0;
+        if (canvasZeroGameX < 0 ) {
+            canvasZeroDFT = Math.abs(fs.boxel + (canvasZeroGameY % (fs.boxel))) * fs.camera.zoom;
+        } else {
+            canvasZeroDFT = Math.abs(canvasZeroGameY % (fs.boxel)) * fs.camera.zoom;
+        }
+
 
         // Step 1.5: Figure out which boxel the mouse is in
         const mouseGameX = fs.camera.x - (fs.canvas.w / (2 * fs.camera.zoom)) + (fs.mouse.x / fs.camera.zoom); // Canvas to Game Coordinate Conversion
@@ -223,8 +282,11 @@
                 ctx.drawImage(assets['acre'], itemX, itemY, state.landscapeShop['acre'].w * boxel, state.landscapeShop['acre'].h * boxel);
             }
 
+        } else {
+            renderGrid(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
+            renderScene(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
         }
-        
+
 
 
         ctx.beginPath();
@@ -235,8 +297,8 @@
         // Highlight the boxel the mouse is in
 
         ctx.beginPath();
-        ctx.rect((Math.floor((fs.mouse.x + distanceFromLeft) / boxel) * boxel) - distanceFromLeft, (Math.floor((fs.mouse.y + distanceFromTop) / boxel) * boxel) - distanceFromTop, boxel, boxel);
-        ctx.fillStyle = 'blue';
+        ctx.rect((Math.floor((fs.mouse.x + canvasZeroDFL) / boxel) * boxel) - canvasZeroDFL, (Math.floor((fs.mouse.y + canvasZeroDFT) / boxel) * boxel) - canvasZeroDFT, boxel, boxel);
+        ctx.fillStyle = 'rgba(0,0,255,0.1)';
         ctx.fill();
 
        

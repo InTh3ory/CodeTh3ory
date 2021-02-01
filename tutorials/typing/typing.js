@@ -54,8 +54,8 @@ const state = {
             cost: 50,
             img: 'assets/grass.jpg',
             owned: 0,
-            w: 5,
-            h: 5,
+            w: 1,
+            h: 1,
             locations: [],
         }
     },
