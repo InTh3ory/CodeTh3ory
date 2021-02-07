@@ -52,10 +52,10 @@ const state = {
         acre: {
             label: 'Acre',
             cost: 50,
-            img: 'assets/grass.jpg',
+            img: 'assets/grass.png',
             owned: 0,
-            w: 1,
-            h: 1,
+            w: 5,
+            h: 5,
             locations: [],
         }
     },
@@ -70,6 +70,7 @@ const state = {
             owned: 0,
             produced: 0,
             size: 1,
+            instances: [],
         },
         goat: {
             label: 'Goat',
@@ -144,6 +145,7 @@ const shopItemHandler = (e) => {
         itemState.owned++;
         state.monies -= itemState.cost;
         itemState.cost *= 1.1;
+        state.cart.push(key);
     }
     renderShop();
 };

@@ -8,7 +8,7 @@
     const landWidth = 1500;
 
     const fs = {
-        boxel: 100,
+        boxel: 25,
         mouse: {
             x: 0,
             y: 0,
@@ -28,6 +28,23 @@
         canvas: {
             w: 0,
             h: 0,
+        },
+        acre: {
+            isCollision: (row, col, width, height) => {
+                let collision = false;
+                const acre = state.landscapeShop.acre;
+                state.landscapeShop.acre.locations.forEach(a => {
+                    const rect1 = { x: col, y: row, width, height };
+                    const rect2 = { x: a.c, y: a.r, width: acre.w, height: acre.h }
+                    if (rect1.x < rect2.x + rect2.width &&
+                        rect1.x + rect1.width > rect2.x &&
+                        rect1.y < rect2.y + rect2.height &&
+                        rect1.y + rect1.height > rect2.y) {
+                         collision = true;
+                     }
+                });
+                return collision;
+            }
         }
     };
 
@@ -48,19 +65,39 @@
         }
 
         update() {
-            const xDir = (Math.random() * 2) - 1;
-            const yDir = (Math.random() * 2) - 1;
-            this.x += xDir * pixelSize;
-            this.y += yDir * pixelSize;
+            if (Math.random() < 0.1) {
+                const xDir = (Math.random() * 2) - 1;
+                const yDir = (Math.random() * 2) - 1;
+                const newX = this.x + xDir * fs.boxel;
+                const newY = this.y + yDir * fs.boxel;
+                // Figure out which row and column we are in
+                const newRow = Math.floor(newY / fs.boxel);
+                const newCol = Math.floor(newX / fs.boxel);
+                // Is this on an acre?
+                let canMove = false;
+
+                const acre = state.landscapeShop.acre;
+                acre.locations.forEach(a => {
+                    if (newRow >= a.r && newRow < (a.r + acre.w) && newCol >= a.c && newCol < (a.c + acre.h) ) {
+                        canMove = true;
+                    }
+                });
+                if (canMove) {
+                    this.x = newX;
+                    this.y = newY;
+                }
+
+            }
+
             
-            if (this.x < landBoundaries.xMin) this.x = landBoundaries.xMin;
-            if (this.x > landBoundaries.xMax) this.x = landBoundaries.xMax;
-            if (this.y < landBoundaries.yMin) this.y = landBoundaries.yMin;
-            if (this.y > landBoundaries.xMax) this.y = landBoundaries.yMax;
         }
 
-        draw(ctx, img) {
-            ctx.drawImage(img, this.x, this.y, this.size * pixelSize, this.size * pixelSize);
+        draw(ctx) {
+            // Convert x and y to canvas coordinates
+            // Game to canvas
+            const canvasX = (this.x - fs.camera.x + (fs.canvas.w / (2 * fs.camera.zoom))) * fs.camera.zoom; // Game to Canvas
+            const canvasY = (this.y - fs.camera.y + (fs.canvas.h / (2 * fs.camera.zoom))) * fs.camera.zoom;
+            ctx.drawImage(this.img, canvasX, canvasY, this.size * fs.boxel * fs.camera.zoom, this.size * fs.boxel * fs.camera.zoom);
         }
     }
 
@@ -108,9 +145,15 @@
             fs.mouse.x = (evt.clientX - rect.left) / (rect.right - rect.left) * canvas.width;
             fs.mouse.y = (evt.clientY - rect.top) / (rect.bottom - rect.top) * canvas.height;
 
+            const mouseGameX = fs.camera.x - (fs.canvas.w / (2 * fs.camera.zoom)) + (fs.mouse.x / fs.camera.zoom); // Canvas to Game Coordinate Conversion
+            const mouseGameY = fs.camera.y - (fs.canvas.h / (2 * fs.camera.zoom)) + (fs.mouse.y / fs.camera.zoom);
+            fs.mouse.row = Math.floor(mouseGameY / fs.boxel);
+            fs.mouse.col = Math.floor(mouseGameX / fs.boxel);
+
             if (fs.mouse.down.is) {
                 const dx = fs.mouse.x - fs.mouse.down.x;
                 const dy = fs.mouse.y - fs.mouse.down.y;
+
                 fs.camera.x = fs.mouse.down.ogCameraX - (dx / fs.camera.zoom);
                 fs.camera.y = fs.mouse.down.ogCameraY - (dy / fs.camera.zoom);
             }
@@ -124,20 +167,11 @@
             fs.mouse.down.ogCameraY = fs.camera.y;
             ++fs.mouse.down.is;
             if (state.cart.length) {
-                const mouseGameX = fs.camera.x - (fs.canvas.w / (2 * fs.camera.zoom)) + (fs.mouse.x / fs.camera.zoom); // Canvas to Game Coordinate Conversion
-                const mouseGameY = fs.camera.y - (fs.canvas.h / (2 * fs.camera.zoom)) + (fs.mouse.y / fs.camera.zoom);
-                const mr = Math.floor(mouseGameY / fs.boxel);
-                const mc = Math.floor(mouseGameX / fs.boxel);
-                state.landscapeShop.acre.locations.push({ r: mr, c: mc });
-                state.cart.pop();
+                if (state.cart[0] === 'acre' && !fs.acre.isCollision(fs.mouse.row, fs.mouse.col)) {
+                    state.landscapeShop.acre.locations.push({ r: fs.mouse.row, c:  fs.mouse.col });
+                    state.cart.pop();
+                }                
             }
-
-            // Debugging
-            const mouseGameX = fs.camera.x - (fs.canvas.w / (2 * fs.camera.zoom)) + (fs.mouse.x / fs.camera.zoom); // Canvas to Game Coordinate Conversion
-            const mouseGameY = fs.camera.y - (fs.canvas.h / (2 * fs.camera.zoom)) + (fs.mouse.y / fs.camera.zoom);
-            const mr = Math.floor(mouseGameY / fs.boxel);
-            const mc = Math.floor(mouseGameX / fs.boxel);
-            console.log(mr, mc);
         });
         document.getElementById("canvas").addEventListener('mouseup', (evt) => {
             --fs.mouse.down.is;
@@ -207,26 +241,48 @@
                 const mr = Math.floor(mouseGameY / fs.boxel);
                 const mc = Math.floor(mouseGameX / fs.boxel);
 
-            
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
                 ctx.fillText(`${mr} ${mc}`, (j * boxel) + 10 - distanceFromLeft, (i * boxel) + 10 - distanceFromTop);
                 // Is there something in this box? If yes, draw it
-                // state.landscapeShop.acre.locations.forEach((coord) => {
-                //     if (coord.r === row && coord.c === col) {
-                //         const canvasX = j * boxel;
-                //         const canvasY = i * boxel;
-                //         const itemX = (canvasX) - distanceFromLeft;
-                //         const itemY = (canvasY) - distanceFromTop;
-                //         ctx.drawImage(assets['acre'], itemX, itemY, state.landscapeShop['acre'].w * boxel, state.landscapeShop['acre'].h * boxel);
-                //     }
-                // });
+                state.landscapeShop.acre.locations.forEach((coord) => {
+                    if (coord.r === mr && coord.c === mc) {
+                        const canvasX = j * boxel;
+                        const canvasY = i * boxel;
+                        const itemX = (canvasX) - distanceFromLeft;
+                        const itemY = (canvasY) - distanceFromTop;
+                        ctx.drawImage(assets['acre'], itemX, itemY, state.landscapeShop['acre'].w * boxel, state.landscapeShop['acre'].h * boxel);
+                    }
+                });
             }
+        }
+
+        for (let i = 0; i < state.shop.rabbit.instances.length; i++) {
+            state.shop.rabbit.instances[i].draw(ctx);
         }
 
 
         // Determine how may boxels are on screen then loop
     };
 
+    const update = (ctx) => {
+        if (state.cart.length) {
+            if (state.cart[0] === 'rabbit') {
+                const acreCoords = state.landscapeShop.acre.locations[0];
+                const rabbitX = acreCoords.c * fs.boxel; // Column to game coordinates
+                const rabbitY = acreCoords.r * fs.boxel; // Row to game coordinates
+
+                const rabbit = new Animal(rabbitX, rabbitY, assets.rabbit, 1);
+                state.shop.rabbit.instances.push(rabbit);
+                state.cart.shift();
+            }
+        }
+
+        state.shop.rabbit.instances.forEach(i => i.update());
+    };
+
     const draw = () => {
+        update();
+
         const canvas = document.getElementById("canvas");
         const size = 500;
         fs.canvas.w = size;
@@ -247,7 +303,10 @@
         const canvasZeroGameX = fs.camera.x - (canvas.width / (2 * fs.camera.zoom)); // x coordinate of canvas 0,0
         let canvasZeroDFL = 0;
         if (canvasZeroGameX < 0 ) {
-            canvasZeroDFL = Math.abs(fs.boxel + (canvasZeroGameX % (fs.boxel))) * fs.camera.zoom;
+            if (canvasZeroGameX % fs.boxel) {
+                canvasZeroDFL = Math.abs(fs.boxel + (canvasZeroGameX % fs.boxel)) * fs.camera.zoom;
+            }
+
         } else {
             canvasZeroDFL = Math.abs(canvasZeroGameX % (fs.boxel)) * fs.camera.zoom;
         }
@@ -255,7 +314,9 @@
         const canvasZeroGameY = fs.camera.y - (canvas.height / (2 * fs.camera.zoom)); // y coordinate of canvas 0,0
         let canvasZeroDFT = 0;
         if (canvasZeroGameX < 0 ) {
-            canvasZeroDFT = Math.abs(fs.boxel + (canvasZeroGameY % (fs.boxel))) * fs.camera.zoom;
+            if (canvasZeroGameY % fs.boxel) {
+                canvasZeroDFT = Math.abs(fs.boxel + (canvasZeroGameY % fs.boxel)) * fs.camera.zoom;
+            }
         } else {
             canvasZeroDFT = Math.abs(canvasZeroGameY % (fs.boxel)) * fs.camera.zoom;
         }
@@ -272,21 +333,28 @@
         const boxel = fs.boxel * fs.camera.zoom;
 
 
-        if (state.cart.length) {
-            renderGrid(ctx, canvas, boxel, distanceFromTop, distanceFromLeft);
 
+        renderGrid(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
+        renderScene(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
+
+        if (state.cart.length) {
             // Render Cart Item
             if (state.cart[0] === 'acre') {
-                const itemX = (Math.floor((fs.mouse.x + distanceFromLeft) / boxel) * boxel) - distanceFromLeft;
-                const itemY = (Math.floor((fs.mouse.y + distanceFromTop) / boxel) * boxel) - distanceFromTop;
-                ctx.drawImage(assets['acre'], itemX, itemY, state.landscapeShop['acre'].w * boxel, state.landscapeShop['acre'].h * boxel);
+                const itemX = (Math.floor((fs.mouse.x + canvasZeroDFL) / boxel) * boxel) - canvasZeroDFL; // Canvas to Canvas
+                const itemY = (Math.floor((fs.mouse.y + canvasZeroDFT) / boxel) * boxel) - canvasZeroDFT;
+                const acre = state.landscapeShop['acre'];
+                ctx.drawImage(assets['acre'], itemX, itemY, acre.w * boxel, acre.h * boxel);
+
+                // Is there a collision?
+                let isCollision = fs.acre.isCollision(fs.mouse.row, fs.mouse.col, acre.w, acre.h);
+                if (isCollision) {
+                    ctx.beginPath();
+                    ctx.rect(itemX, itemY, acre.w * boxel, acre.h * boxel);
+                    ctx.fillStyle = 'rgba(255,0,0,0.5)';
+                    ctx.fill();
+                }
             }
-
-        } else {
-            renderGrid(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
-            renderScene(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
         }
-
 
 
         ctx.beginPath();
@@ -295,11 +363,10 @@
         ctx.fill();
 
         // Highlight the boxel the mouse is in
-
-        ctx.beginPath();
-        ctx.rect((Math.floor((fs.mouse.x + canvasZeroDFL) / boxel) * boxel) - canvasZeroDFL, (Math.floor((fs.mouse.y + canvasZeroDFT) / boxel) * boxel) - canvasZeroDFT, boxel, boxel);
-        ctx.fillStyle = 'rgba(0,0,255,0.1)';
-        ctx.fill();
+        // ctx.beginPath();
+        // ctx.rect((Math.floor((fs.mouse.x + canvasZeroDFL) / boxel) * boxel) - canvasZeroDFL, (Math.floor((fs.mouse.y + canvasZeroDFT) / boxel) * boxel) - canvasZeroDFT, boxel, boxel);
+        // ctx.fillStyle = 'rgba(0,0,255,0.1)';
+        // ctx.fill();
 
        
 
