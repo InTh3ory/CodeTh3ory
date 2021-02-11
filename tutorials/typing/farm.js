@@ -92,10 +92,24 @@
             ctx.drawImage(this.img, canvasX, canvasY, this.size * fs.boxel * fs.camera.zoom, this.size * fs.boxel * fs.camera.zoom);
         }
     }
+    class Wall {
+        constructor(row, col, src, size) {
+            this.row = row;
+            this.col = col;
+            this.img = src;
+            this.size = size;
+        }
+        update() {
+
+        }
+        draw(ctx) {
+  
+        }
+    }
 
     const init = () => {
 
-        const toLoad = Object.keys(state.shop).length + 2;
+        const toLoad = Object.keys(state.shop).length + 3;
         let loaded = 0;
         const isLoaded = () => {
             loaded++;
@@ -128,6 +142,13 @@
         acreImg.src = state.landscapeShop['acre'].img;
         acreImg.onload = () => {
             assets.acre = acreImg;
+            isLoaded();
+        };
+
+        const wallImg = document.createElement('img');
+        wallImg.src = state.landscapeShop['wall'].img;
+        wallImg.onload = () => {
+            assets.wall = wallImg;
             isLoaded();
         };
 
@@ -168,25 +189,55 @@
             const cartItem = state.cart[0];
             if (state.cart.length) {
                 if (cartItem === 'acre' && !fs.acre.isCollision(fs.mouse.row, fs.mouse.col, state.landscapeShop.acre.w, state.landscapeShop.acre.h)) {
-                    state.landscapeShop.acre.instances.push({ r: fs.mouse.row, c:  fs.mouse.col });
                     
+                    const itemCost = (state.landscapeShop.acre.instances.length + 1) * state.landscapeShop.acre.cost;
+                    if (itemCost <= state.monies) {
+                        state.monies -= itemCost;
+                    
+                        state.landscapeShop[cartItem].instances.push({ r: fs.mouse.row, c:  fs.mouse.col });
+                        
+                        state.cart.pop();
+                        rs.shop();
+                        rs.landscapeShop();
+                    } else {
+                        console.error('You cannot afford this. Press ESC to clear cart');
+                    }
 
-                    const itemCost = (state.landscapeShop.acre.instances.length) * state.landscapeShop.acre.cost;
-                    state.monies -= itemCost;
-
-                    state.cart.pop();
-                    rs.shop();
-                    rs.landscapeShop();
                 }
                 const animalKeys = Object.keys(state.shop);
                 if (animalKeys.includes(cartItem) && fs.acre.isCollision(fs.mouse.row, fs.mouse.col, 1, 1)) {
-                    const animalX = fs.mouse.col * fs.boxel; // Column to game coordinates
-                    const animalY = fs.mouse.row * fs.boxel; // Row to game coordinates
-                    const animal = new Animal(animalX, animalY, assets[cartItem], state.shop[cartItem].size);
-                    state.shop[cartItem].instances.push(animal);
-                    state.cart.shift();
-                    rs.shop();
-                }       
+
+                    const itemCost = (state.shop[cartItem].instances.length + 1) * state.shop[cartItem].cost;
+                    if (itemCost <= state.monies) {
+                        const animalX = fs.mouse.col * fs.boxel; // Column to game coordinates
+                        const animalY = fs.mouse.row * fs.boxel; // Row to game coordinates
+                        const animal = new Animal(animalX, animalY, assets[cartItem], state.shop[cartItem].size);
+                        state.shop[cartItem].instances.push(animal);
+    
+                        state.monies -= itemCost;
+    
+                        state.cart.pop();
+                        rs.shop();
+                    } else {
+                        console.error('You cannot afford this. Press ESC to clear cart');
+                    }
+                }    
+                
+                if (cartItem === 'wall') {
+                    const itemCost = (state.landscapeShop[cartItem].instances.length + 1) * state.landscapeShop[cartItem].cost;
+                    if (itemCost <= state.monies) {
+
+                        const wall = new Wall(fs.mouse.row, fs.mouse.col, assets[cartItem], state.landscapeShop[cartItem].size);
+                        state.landscapeShop[cartItem].instances.push(wall);
+    
+                        state.monies -= itemCost;
+    
+                        state.cart.pop();
+                        rs.shop();
+                    } else {
+                        console.error('You cannot afford this. Press ESC to clear cart');
+                    }
+                }
             }
         });
         document.getElementById("canvas").addEventListener('mouseup', (evt) => {
@@ -258,6 +309,15 @@
                         const itemX = (canvasX) - distanceFromLeft;
                         const itemY = (canvasY) - distanceFromTop;
                         ctx.drawImage(assets['acre'], itemX, itemY, state.landscapeShop['acre'].w * boxel, state.landscapeShop['acre'].h * boxel);
+                    }
+                });
+                state.landscapeShop.wall.instances.forEach(wall => {
+                    if (wall.row === mr && wall.col === mc) {
+                        const canvasX = j * boxel;
+                        const canvasY = i * boxel;
+                        const itemX = (canvasX) - distanceFromLeft;
+                        const itemY = (canvasY) - distanceFromTop;
+                        ctx.drawImage(assets['wall'], itemX, itemY, state.landscapeShop['wall'].w * boxel, state.landscapeShop['wall'].h * boxel);
                     }
                 });
             }
@@ -354,6 +414,12 @@
                     ctx.fillStyle = 'rgba(255,0,0,0.5)';
                     ctx.fill();
                 }
+            } else if (cartItem === 'wall') {
+                const itemX = (Math.floor((fs.mouse.x + canvasZeroDFL) / boxel) * boxel) - canvasZeroDFL; // Canvas to Canvas
+                const itemY = (Math.floor((fs.mouse.y + canvasZeroDFT) / boxel) * boxel) - canvasZeroDFT;
+                const wall = state.landscapeShop['wall'];
+                ctx.drawImage(assets['wall'], itemX, itemY, wall.w * boxel, wall.h * boxel);
+
             } else if (animalKeys.includes(cartItem)) {
                 const animal = state.shop[cartItem];
                 ctx.drawImage(assets[cartItem], fs.mouse.x, fs.mouse.y, animal.size * fs.boxel * fs.camera.zoom, animal.size * fs.boxel * fs.camera.zoom);

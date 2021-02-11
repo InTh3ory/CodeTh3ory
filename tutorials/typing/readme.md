@@ -14,3 +14,5 @@ Woolly Mammoth - https://www.vecteezy.com/vector-art/109088-vector-ice-age-anima
 
 Grass
 https://www.vectorstock.com/royalty-free-vector/seamless-grass-texture-vector-12308819
+Log
+https://www.flaticon.com/free-icon/log_222434?term=log&page=1&position=91&page=1&position=91&related_id=222434&origin=search

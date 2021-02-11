@@ -56,7 +56,15 @@ const state = {
             w: 5,
             h: 5,
             instances: [],
-        }
+        },
+        wall: {
+            label: 'Wall',
+            cost: 50,
+            img: 'assets/wall.png',
+            w: 1,
+            h: 1,
+            instances: [],
+        },
     },
     farmBuildings: {
     },
@@ -141,8 +149,6 @@ const shopItemHandler = (e) => {
     const itemState = state.shop[key];
     if (ss.landSize() - ss.animalCap() >= itemState.cap) {
         if (itemState.cost <= state.monies) {
-            state.monies -= itemState.cost;
-            itemState.cost *= 1.1;
             state.cart.push(key);
         }
     } else {
@@ -154,8 +160,6 @@ const landscapeItemHandler = (e) => {
     const key = e.target.getAttribute('data-key');
     const itemState = state.landscapeShop[key];
     if (itemState.cost <= state.monies) {
-        // state.monies -= itemState.cost;
-        // itemState.cost = 1.1;
         state.cart.push(key);
     }
     rs.landscapeShop();
@@ -216,7 +220,11 @@ const rs = {
     
                 li.addEventListener('click', shopItemHandler);
                 li.setAttribute('data-key', key);
-                const label = document.createTextNode(`${value.label} ${Math.round(value.cost)} - Owned ${value.instances.length}`);
+
+                const itemsInCart = state.cart.filter(i => i === key).length;
+                const itemCost = (value.instances.length + itemsInCart + 1) * value.cost;
+
+                const label = document.createTextNode(`${value.label} ${Math.round(itemCost)} - Owned ${value.instances.length}`);
                 li.appendChild(label);
                 list.appendChild(li);
             }
