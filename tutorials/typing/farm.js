@@ -33,7 +33,7 @@
             isCollision: (row, col, width, height) => {
                 let collision = false;
                 const acre = state.landscapeShop.acre;
-                state.landscapeShop.acre.locations.forEach(a => {
+                state.landscapeShop.acre.instances.forEach(a => {
                     const rect1 = { x: col, y: row, width, height };
                     const rect2 = { x: a.c, y: a.r, width: acre.w, height: acre.h }
                     if (rect1.x < rect2.x + rect2.width &&
@@ -49,12 +49,7 @@
     };
 
     const pixelSize = 20;
-    const assets = {
-        farm: null,
-        rabbit: null,
-    };
-    const animals = {};
-    const landBoundaries = { xMin: 0, xMax: 0, yMin: 0, yMax: 0 };
+    const assets = {};
 
     class Animal {
         constructor(x, y, src, size) {
@@ -65,7 +60,7 @@
         }
 
         update() {
-            if (Math.random() < 0.1) {
+            if (Math.random() < 0.02) {
                 const xDir = (Math.random() * 2) - 1;
                 const yDir = (Math.random() * 2) - 1;
                 const newX = this.x + xDir * fs.boxel;
@@ -77,7 +72,7 @@
                 let canMove = false;
 
                 const acre = state.landscapeShop.acre;
-                acre.locations.forEach(a => {
+                acre.instances.forEach(a => {
                     if (newRow >= a.r && newRow < (a.r + acre.w) && newCol >= a.c && newCol < (a.c + acre.h) ) {
                         canMove = true;
                     }
@@ -86,10 +81,7 @@
                     this.x = newX;
                     this.y = newY;
                 }
-
             }
-
-            
         }
 
         draw(ctx) {
@@ -102,9 +94,9 @@
     }
 
     const init = () => {
-        const toLoad = 2;
-        let loaded = 0;
 
+        const toLoad = Object.keys(state.shop).length + 2;
+        let loaded = 0;
         const isLoaded = () => {
             loaded++;
             if (loaded === toLoad ) {
@@ -112,24 +104,23 @@
             }
         };
 
+        // Load Animal Assets
+        Object.keys(state.shop).forEach((key) => {
+            const img = document.createElement('img');
+            img.src = `assets/${key}.png`;
+            img.onload = () => {
+                assets[key] = img;
+                isLoaded();
+            };
+            img.onerror= () => {
+                isLoaded();
+            };
+        });
+
         const farmImg = document.createElement('img');
         farmImg.src = 'assets/farm.png';
         farmImg.onload = () => {
             assets.farm = farmImg;
-            isLoaded();
-        };
-
-        const rabbitImg = document.createElement('img');
-        rabbitImg.src = 'assets/rabbit.png';
-        rabbitImg.onload = () => {
-            assets.rabbit = rabbitImg;
-            isLoaded();
-        };
-
-        const goatImg = document.createElement('img');
-        goatImg.src = 'assets/goat.png';
-        goatImg.onload = () => {
-            assets.goat = goatImg;
             isLoaded();
         };
 
@@ -139,6 +130,13 @@
             assets.acre = acreImg;
             isLoaded();
         };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                state.cart = [];
+                rs.all();
+            }
+        });
 
         document.getElementById("canvas").addEventListener('mousemove', (evt) => {
             var rect = canvas.getBoundingClientRect();
@@ -166,11 +164,29 @@
             fs.mouse.down.ogCameraX = fs.camera.x;
             fs.mouse.down.ogCameraY = fs.camera.y;
             ++fs.mouse.down.is;
+
+            const cartItem = state.cart[0];
             if (state.cart.length) {
-                if (state.cart[0] === 'acre' && !fs.acre.isCollision(fs.mouse.row, fs.mouse.col)) {
-                    state.landscapeShop.acre.locations.push({ r: fs.mouse.row, c:  fs.mouse.col });
+                if (cartItem === 'acre' && !fs.acre.isCollision(fs.mouse.row, fs.mouse.col, state.landscapeShop.acre.w, state.landscapeShop.acre.h)) {
+                    state.landscapeShop.acre.instances.push({ r: fs.mouse.row, c:  fs.mouse.col });
+                    
+
+                    const itemCost = (state.landscapeShop.acre.instances.length) * state.landscapeShop.acre.cost;
+                    state.monies -= itemCost;
+
                     state.cart.pop();
-                }                
+                    rs.shop();
+                    rs.landscapeShop();
+                }
+                const animalKeys = Object.keys(state.shop);
+                if (animalKeys.includes(cartItem) && fs.acre.isCollision(fs.mouse.row, fs.mouse.col, 1, 1)) {
+                    const animalX = fs.mouse.col * fs.boxel; // Column to game coordinates
+                    const animalY = fs.mouse.row * fs.boxel; // Row to game coordinates
+                    const animal = new Animal(animalX, animalY, assets[cartItem], state.shop[cartItem].size);
+                    state.shop[cartItem].instances.push(animal);
+                    state.cart.shift();
+                    rs.shop();
+                }       
             }
         });
         document.getElementById("canvas").addEventListener('mouseup', (evt) => {
@@ -187,19 +203,8 @@
 
     };
 
-    const p = (x) => {
-        return pixelSize * Math.round(x / pixelSize);
-    };
     const toCanvas = (x) => {
         return x * pixelSize;
-    };
-
-    const pixelate = (cx, cy, size) => {
-        const shift = Math.floor(size / 2);
-        const xPixel = cx - shift;
-        const yPixel = cy - shift;
-        return { x: toCanvas(xPixel), y: toCanvas(yPixel), w: pixelSize * size, h: pixelSize * size };
-
     };
 
     const renderGrid = (ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL) => {
@@ -241,10 +246,12 @@
                 const mr = Math.floor(mouseGameY / fs.boxel);
                 const mc = Math.floor(mouseGameX / fs.boxel);
 
-                ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                ctx.fillText(`${mr} ${mc}`, (j * boxel) + 10 - distanceFromLeft, (i * boxel) + 10 - distanceFromTop);
+                // Debugging - Show Coordinates
+                // ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                // ctx.fillText(`${mr} ${mc}`, (j * boxel) + 10 - distanceFromLeft, (i * boxel) + 10 - distanceFromTop);
+                
                 // Is there something in this box? If yes, draw it
-                state.landscapeShop.acre.locations.forEach((coord) => {
+                state.landscapeShop.acre.instances.forEach((coord) => {
                     if (coord.r === mr && coord.c === mc) {
                         const canvasX = j * boxel;
                         const canvasY = i * boxel;
@@ -256,35 +263,27 @@
             }
         }
 
-        for (let i = 0; i < state.shop.rabbit.instances.length; i++) {
-            state.shop.rabbit.instances[i].draw(ctx);
-        }
+        const animalKeys = Object.keys(state.shop);
 
-
-        // Determine how may boxels are on screen then loop
+        animalKeys.forEach(k => {
+            state.shop[k].instances.forEach(i => i.draw(ctx));
+        });
     };
 
     const update = (ctx) => {
-        if (state.cart.length) {
-            if (state.cart[0] === 'rabbit') {
-                const acreCoords = state.landscapeShop.acre.locations[0];
-                const rabbitX = acreCoords.c * fs.boxel; // Column to game coordinates
-                const rabbitY = acreCoords.r * fs.boxel; // Row to game coordinates
+        const animalKeys = Object.keys(state.shop);
 
-                const rabbit = new Animal(rabbitX, rabbitY, assets.rabbit, 1);
-                state.shop.rabbit.instances.push(rabbit);
-                state.cart.shift();
-            }
-        }
 
-        state.shop.rabbit.instances.forEach(i => i.update());
+        animalKeys.forEach(k => {
+            state.shop[k].instances.forEach(i => i.update());
+        });
     };
 
     const draw = () => {
         update();
 
         const canvas = document.getElementById("canvas");
-        const size = 500;
+        const size = 800;
         fs.canvas.w = size;
         fs.canvas.h = size;
 
@@ -334,12 +333,14 @@
 
 
 
-        renderGrid(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
+        if (state.cart.length) renderGrid(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
         renderScene(ctx, canvas, boxel, canvasZeroDFT, canvasZeroDFL);
 
         if (state.cart.length) {
+            const animalKeys = Object.keys(state.shop);
             // Render Cart Item
-            if (state.cart[0] === 'acre') {
+            const cartItem = state.cart[0];
+            if (cartItem === 'acre') {
                 const itemX = (Math.floor((fs.mouse.x + canvasZeroDFL) / boxel) * boxel) - canvasZeroDFL; // Canvas to Canvas
                 const itemY = (Math.floor((fs.mouse.y + canvasZeroDFT) / boxel) * boxel) - canvasZeroDFT;
                 const acre = state.landscapeShop['acre'];
@@ -353,7 +354,12 @@
                     ctx.fillStyle = 'rgba(255,0,0,0.5)';
                     ctx.fill();
                 }
+            } else if (animalKeys.includes(cartItem)) {
+                const animal = state.shop[cartItem];
+                ctx.drawImage(assets[cartItem], fs.mouse.x, fs.mouse.y, animal.size * fs.boxel * fs.camera.zoom, animal.size * fs.boxel * fs.camera.zoom);
             }
+
+
         }
 
 

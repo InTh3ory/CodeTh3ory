@@ -12,12 +12,16 @@ h2 {
     font-size: 18px;
 }
 
-body {
+small {
+    font-size: 0.8em;
+}
+
+.top-panel, .bottom-panel {
     display: flex;
     justify-content: center;
 }
 
-body > div {
+.top-panel > div {
     margin: 20px;
 }
 
@@ -29,7 +33,7 @@ input {
 }
 
 canvas {
-    border: 1px solid red;
+    border: 1px solid #bbb;
 }
 
 .active {
@@ -39,6 +43,10 @@ canvas {
 
 .mistake {
     color: #B60000;
+}
+
+.disabled {
+    opacity: 0.5;
 }
 
 #word-container {

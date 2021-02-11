@@ -36,7 +36,7 @@ const state = {
     quality: 1,
     wordIndex: 0,
     wordCount: 0,
-    monies: 100000,
+    monies: 10000,
     moniesPerSecond: 0,
     recentWords: [],
     cart: [],
@@ -53,10 +53,9 @@ const state = {
             label: 'Acre',
             cost: 50,
             img: 'assets/grass.png',
-            owned: 0,
             w: 5,
             h: 5,
-            locations: [],
+            instances: [],
         }
     },
     farmBuildings: {
@@ -66,74 +65,73 @@ const state = {
             label: 'Rabbit',
             cost: 100,
             rate: 1,
-            img: 'assets/rabbit.png',
-            owned: 0,
             produced: 0,
             size: 1,
             instances: [],
+            cap: 1,
         },
         goat: {
             label: 'Goat',
             cost: 1000,
             rate: 10,
-            img: 'assets/goat.png',
-            owned: 0,
             produced: 0,
             size: 2,
+            cap: 2,
+            instances: [],
         },
         sheep: {
             label: 'Sheep',
             cost: 10000,
             rate: 100,
-            img: '',
-            owned: 0,
             produced: 0,
-            size: 5,
+            size: 2.2,
+            cap: 3,
+            instances: [],
         },
         alpaca: {
             label: 'Alpaca',
             cost: 100000,
             rate: 1000,
-            img: '',
-            owned: 0,
             produced: 0,
-            size: 6,
+            size: 2.8,
+            cap: 4,
+            instances: [],
         },
         camel: {
             label: 'Camel',
             cost: 1000000,
             rate: 10000,
-            img: '',
-            owned: 0,
             produced: 0,
-            size: 10,
+            size: 3.2,
+            cap: 5,
+            instances: [],
         },
         bison: {
             label: 'Bison',
             cost: 10000000,
             rate: 1,
-            img: '',
-            owned: 0,
             produced: 0,
-            size: 20,
+            size: 4,
+            cap: 6,
+            instances: [],
         },
-        muskOx: {
-            label: 'Musk Ox',
+        muskox: {
+            label: 'Muskox',
             cost: 100000000,
             rate: 1,
-            img: '',
-            owned: 0,
             produced: 0,
-            size: 25,
+            size: 4,
+            cap: 7,
+            instances: [],
         },
         woollyMammoth: {
             label: 'Woolly Mammoth',
             cost: 10000000000,
             rate: 1,
-            img: '',
-            owned: 0,
             produced: 0,
-            size: 50,
+            size: 8,
+            cap: 20,
+            instances: [],
         }
     },
 };
@@ -141,33 +139,35 @@ const state = {
 const shopItemHandler = (e) => {
     const key = e.target.getAttribute('data-key');
     const itemState = state.shop[key];
-    if (itemState.cost <= state.monies) {
-        itemState.owned++;
-        state.monies -= itemState.cost;
-        itemState.cost *= 1.1;
-        state.cart.push(key);
+    if (ss.landSize() - ss.animalCap() >= itemState.cap) {
+        if (itemState.cost <= state.monies) {
+            state.monies -= itemState.cost;
+            itemState.cost *= 1.1;
+            state.cart.push(key);
+        }
+    } else {
+        console.log('Not enough space!')
     }
-    renderShop();
+    rs.shop();
 };
 const landscapeItemHandler = (e) => {
     const key = e.target.getAttribute('data-key');
     const itemState = state.landscapeShop[key];
     if (itemState.cost <= state.monies) {
-        itemState.owned++;
-        state.monies -= itemState.cost;
-        itemState.cost *= 1.1;
+        // state.monies -= itemState.cost;
+        // itemState.cost = 1.1;
         state.cart.push(key);
     }
-    renderLandscapeShop();
+    rs.landscapeShop();
 }
 
 const update = () => {
     state.moniesPerSecond = 0;
 
     Object.entries(state.shop).forEach(([key, value]) => {
-        if (value.owned) {
-            state.monies += (value.owned * value.rate) / 10;
-            state.moniesPerSecond += value.owned * value.rate;
+        if (value.instances.length) {
+            state.monies += (value.instances.length * value.rate) / 10;
+            state.moniesPerSecond += value.instances.length * value.rate;
         }
     });
 
@@ -180,7 +180,83 @@ const helpers = {
         const text = document.createTextNode(value);
         span.appendChild(text);
         return span;
-    }
+    },
+
+};
+// Shared Services
+const ss = {
+    animalCap: () => {
+        const animalCap = Object.values(state.shop).reduce((acc, curr) => {
+            acc += curr.instances.length * curr.cap;
+            return acc;
+        }, 0);
+        return animalCap;
+    },
+    landSize: () => state.landscapeShop.acre.instances.length * (state.landscapeShop.acre.w * state.landscapeShop.acre.h)
+};
+const rs = {
+    all: () => {
+        rs.shop();
+        rs.landscapeShop();
+    },
+    shop: () => {
+        const shopContainer = document.getElementById('shop-container');
+        shopContainer.innerHTML = '';
+    
+        const list = document.createElement('ul');
+        
+        let ownsPreviousEntry = false;
+        Object.entries(state.shop).forEach(([key, value], i) => {
+            if (state.monies >= value.cost || ownsPreviousEntry || value.instances.length || !i) {
+                const li = document.createElement('li');
+    
+                if (ss.landSize() - ss.animalCap() < value.cap) {
+                    li.classList.add('disabled');
+                }
+    
+                li.addEventListener('click', shopItemHandler);
+                li.setAttribute('data-key', key);
+                const label = document.createTextNode(`${value.label} ${Math.round(value.cost)} - Owned ${value.instances.length}`);
+                li.appendChild(label);
+                list.appendChild(li);
+            }
+            ownsPreviousEntry = !!value.instances.length;
+        });
+    
+        shopContainer.appendChild(list);
+
+            // Total Animal Size / Land Size
+
+        const landSizeSpan = document.getElementById('land-size');
+        landSizeSpan.innerHTML = '';
+        txt = document.createTextNode(`${ss.animalCap()} / ${ss.landSize()} Capacity`);
+        landSizeSpan.appendChild(txt);
+    },
+    landscapeShop: () => {
+        const shopContainer = document.getElementById('landscape-container');
+        shopContainer.innerHTML = '';
+    
+        const list = document.createElement('ul');
+        
+        let ownsPreviousEntry = false;
+        Object.entries(state.landscapeShop).forEach(([key, value], i) => {
+            if (state.monies >= value.cost || ownsPreviousEntry || value.instances.length || !i) {
+                const li = document.createElement('li');
+                li.addEventListener('click', landscapeItemHandler);
+                li.setAttribute('data-key', key);
+
+                const itemsInCart = state.cart.filter(i => i === key).length;
+                const itemCost = (value.instances.length + itemsInCart + 1) * value.cost;
+
+                const label = document.createTextNode(`${value.label} ${Math.round(itemCost)} - Owned ${value.instances.length}`);
+                li.appendChild(label);
+                list.appendChild(li);
+            }
+            ownsPreviousEntry = !!value.instances.length;
+        });
+    
+        shopContainer.appendChild(list);
+    },
 };
 
 const render = () => {
@@ -225,49 +301,6 @@ const render = () => {
     }
 };
 
-const renderShop = () => {
-    const shopContainer = document.getElementById('shop-container');
-    shopContainer.innerHTML = '';
-
-    const list = document.createElement('ul');
-    
-    let ownsPreviousEntry = false;
-    Object.entries(state.shop).forEach(([key, value], i) => {
-        if (state.monies >= value.cost || ownsPreviousEntry || value.owned || !i) {
-            const li = document.createElement('li');
-            li.addEventListener('click', shopItemHandler);
-            li.setAttribute('data-key', key);
-            const label = document.createTextNode(`${value.label} ${Math.round(value.cost)} - Owned ${value.owned}`);
-            li.appendChild(label);
-            list.appendChild(li);
-        }
-        ownsPreviousEntry = !!value.owned;
-    });
-
-    shopContainer.appendChild(list);
-};
-const renderLandscapeShop = () => {
-    const shopContainer = document.getElementById('landscape-container');
-    shopContainer.innerHTML = '';
-
-    const list = document.createElement('ul');
-    
-    let ownsPreviousEntry = false;
-    Object.entries(state.landscapeShop).forEach(([key, value], i) => {
-        if (state.monies >= value.cost || ownsPreviousEntry || value.owned || !i) {
-            const li = document.createElement('li');
-            li.addEventListener('click', landscapeItemHandler);
-            li.setAttribute('data-key', key);
-            const label = document.createTextNode(`${value.label} ${Math.round(value.cost)} - Owned ${value.owned}`);
-            li.appendChild(label);
-            list.appendChild(li);
-        }
-        ownsPreviousEntry = !!value.owned;
-    });
-
-    shopContainer.appendChild(list);
-}; // Dupe
-
 const addWords = (phrase, paragraph) => {
     const words = phrase.split(' ');
     const wordContainer = document.getElementById('word-container');
@@ -291,8 +324,8 @@ const addWords = (phrase, paragraph) => {
 }
 
 const init = () => {
-    renderShop();
-    renderLandscapeShop();
+    rs.shop();
+    rs.landscapeShop();
     update();
 
     addWords(phrase, false);
@@ -338,6 +371,7 @@ const typeHandler = (e) => {
                 state.monies += increment;
                 value += increment;
                 state.streak++;
+                rs.shop();
             }
             state.recentWords.push({ word: entered[0], value: value });
             span.classList.remove('active');
